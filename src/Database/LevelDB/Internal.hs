@@ -272,9 +272,10 @@ mkCReadOpts :: ReadOptions -> IO ReadOptionsPtr
 mkCReadOpts ReadOptions{..} = do
     opts_ptr <- c_leveldb_readoptions_create
     flip onException (c_leveldb_readoptions_destroy opts_ptr) $ do
-        c_leveldb_readoptions_set_verify_checksums opts_ptr $ boolToNum verifyCheckSums
-        c_leveldb_readoptions_set_fill_cache opts_ptr $ boolToNum fillCache
-
+        -- Default verifyChecksums is OFF, skip expensive call if we can
+        when verifyCheckSums $ c_leveldb_readoptions_set_verify_checksums opts_ptr $ boolToNum verifyCheckSums
+        -- Default fillCache is ON, skip expensive call if we can
+        when (not fillCache) $ c_leveldb_readoptions_set_fill_cache opts_ptr $ boolToNum fillCache
         case useSnapshot of
             Just (Snapshot snap_ptr) -> c_leveldb_readoptions_set_snapshot opts_ptr snap_ptr
             Nothing -> return ()
